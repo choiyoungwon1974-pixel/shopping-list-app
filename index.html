@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>쇼핑 리스트</title>
+    <title>마주스토리 장바구니</title>
     <style>
         * {
             margin: 0;
@@ -158,13 +158,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>🛒 쇼핑 리스트</h1>
+        <h1>🛒 마주스토리 장바구니</h1>
 
         <div class="input-container">
             <input
                 type="text"
                 id="itemInput"
-                placeholder="쇼핑 아이템을 입력하세요..."
+                placeholder="상품명을 입력하세요..."
                 autocomplete="off"
             >
             <button id="addBtn">추가</button>
@@ -173,7 +173,7 @@
         <ul id="shoppingList" class="shopping-list"></ul>
 
         <div class="stats">
-            <span id="statsText">아이템이 없습니다</span>
+            <span id="statsText">상품이 없습니다</span>
         </div>
     </div>
 
@@ -185,7 +185,7 @@
         const statsText = document.getElementById('statsText');
 
         // 로컬스토리지에서 데이터 로드
-        let items = JSON.parse(localStorage.getItem('shoppingItems')) || [];
+        let items = JSON.parse(localStorage.getItem('majuStoryCart')) || [];
 
         // 초기 렌더링
         renderList();
@@ -201,7 +201,7 @@
             const text = itemInput.value.trim();
 
             if (text === '') {
-                alert('아이템을 입력해주세요!');
+                alert('상품명을 입력해주세요!');
                 return;
             }
 
@@ -242,7 +242,7 @@
             shoppingList.innerHTML = '';
 
             if (items.length === 0) {
-                shoppingList.innerHTML = '<div class="empty-message">리스트가 비어있습니다. 아이템을 추가해보세요!</div>';
+                shoppingList.innerHTML = '<div class="empty-message">장바구니가 비어있습니다. 상품을 추가해보세요!</div>';
                 updateStats();
                 return;
             }
@@ -275,15 +275,15 @@
             const unchecked = total - checked;
 
             if (total === 0) {
-                statsText.textContent = '아이템이 없습니다';
+                statsText.textContent = '상품이 없습니다';
             } else {
-                statsText.textContent = `전체: ${total}개 | 완료: ${checked}개 | 남은 것: ${unchecked}개`;
+                statsText.textContent = `전체: ${total}개 | 구매완료: ${checked}개 | 남은 것: ${unchecked}개`;
             }
         }
 
         // 로컬스토리지에 저장
         function saveToLocalStorage() {
-            localStorage.setItem('shoppingItems', JSON.stringify(items));
+            localStorage.setItem('majuStoryCart', JSON.stringify(items));
         }
 
         // XSS 방지를 위한 HTML 이스케이프
