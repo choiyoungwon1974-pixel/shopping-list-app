@@ -177,18 +177,25 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        // Supabase 클라이언트 초기화
+        const supabaseUrl = 'https://ahgnvribhszglmjbazmm.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZ252cmliaHN6Z2xtamJhem1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MzEzNjQsImV4cCI6MjA4NjQwNzM2NH0.MzGBuo8VjOIfOjhfqI9gEtvBew5lj_iPfUjE_oNOyTg';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
         // DOM 요소
         const itemInput = document.getElementById('itemInput');
         const addBtn = document.getElementById('addBtn');
         const shoppingList = document.getElementById('shoppingList');
         const statsText = document.getElementById('statsText');
 
-        // 로컬스토리지에서 데이터 로드
-        let items = JSON.parse(localStorage.getItem('majuStoryCart')) || [];
+        // 데이터 저장 변수
+        let items = [];
 
-        // 초기 렌더링
-        renderList();
+        // 초기 로드
+        loadItems();
 
         // 이벤트 리스너
         addBtn.addEventListener('click', addItem);
@@ -196,8 +203,26 @@
             if (e.key === 'Enter') addItem();
         });
 
+        // 데이터베이스에서 아이템 로드
+        async function loadItems() {
+            try {
+                const { data, error } = await supabase
+                    .from('shopping_items')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                items = data || [];
+                renderList();
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+                alert('데이터를 불러오는데 실패했습니다.');
+            }
+        }
+
         // 아이템 추가
-        function addItem() {
+        async function addItem() {
             const text = itemInput.value.trim();
 
             if (text === '') {
@@ -205,37 +230,71 @@
                 return;
             }
 
-            const item = {
-                id: Date.now(),
-                text: text,
-                checked: false
-            };
+            try {
+                const { data, error } = await supabase
+                    .from('shopping_items')
+                    .insert([{ text: text, checked: false }])
+                    .select();
 
-            items.push(item);
-            saveToLocalStorage();
-            renderList();
-            itemInput.value = '';
-            itemInput.focus();
+                if (error) throw error;
+
+                items.push(data[0]);
+                renderList();
+                itemInput.value = '';
+                itemInput.focus();
+            } catch (error) {
+                console.error('아이템 추가 실패:', error);
+                alert('아이템 추가에 실패했습니다.');
+            }
         }
 
         // 아이템 삭제
-        function deleteItem(id) {
-            items = items.filter(item => item.id !== id);
-            saveToLocalStorage();
-            renderList();
+        async function deleteItem(id) {
+            try {
+                const { error } = await supabase
+                    .from('shopping_items')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                items = items.filter(item => item.id !== id);
+                renderList();
+            } catch (error) {
+                console.error('아이템 삭제 실패:', error);
+                alert('아이템 삭제에 실패했습니다.');
+            }
         }
 
         // 아이템 체크/언체크
-        function toggleItem(id) {
-            items = items.map(item => {
-                if (item.id === id) {
-                    return { ...item, checked: !item.checked };
-                }
-                return item;
-            });
-            saveToLocalStorage();
-            renderList();
+        async function toggleItem(id) {
+            const item = items.find(item => item.id === id);
+            if (!item) return;
+
+            try {
+                const { error } = await supabase
+                    .from('shopping_items')
+                    .update({ checked: !item.checked })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                items = items.map(item => {
+                    if (item.id === id) {
+                        return { ...item, checked: !item.checked };
+                    }
+                    return item;
+                });
+                renderList();
+            } catch (error) {
+                console.error('아이템 업데이트 실패:', error);
+                alert('아이템 업데이트에 실패했습니다.');
+            }
         }
+
+        // 전역 스코프에 함수 노출
+        window.deleteItem = deleteItem;
+        window.toggleItem = toggleItem;
 
         // 리스트 렌더링
         function renderList() {
@@ -279,11 +338,6 @@
             } else {
                 statsText.textContent = `전체: ${total}개 | 구매완료: ${checked}개 | 남은 것: ${unchecked}개`;
             }
-        }
-
-        // 로컬스토리지에 저장
-        function saveToLocalStorage() {
-            localStorage.setItem('majuStoryCart', JSON.stringify(items));
         }
 
         // XSS 방지를 위한 HTML 이스케이프
